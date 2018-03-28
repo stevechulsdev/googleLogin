@@ -36,6 +36,9 @@ dependencies {
     // Google Sign In SDK (only required for Google Sign In)
     compile 'com.google.android.gms:play-services-auth:12.0.0'
 
+    // Google builling Library
+    compile 'com.android.billingclient:billing:1.0'
+
 
 }
 
