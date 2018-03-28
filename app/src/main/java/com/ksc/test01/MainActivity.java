@@ -245,9 +245,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             {
                 e.printStackTrace();
             }
-
-
         }
+
+        if(mHelper == null)
+        {
+            return;
+        }
+
+        if(!mHelper.handleActivityResult(requestCode, resultCode, data))
+        {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+
     }
 
     private void firebaseAuthWithGoogle(GoogleSignInAccount acct)

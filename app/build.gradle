@@ -1,6 +1,21 @@
 apply plugin: 'com.android.application'
 
 android {
+    signingConfigs {
+        debug {
+            keyAlias 'test01'
+            keyPassword 'stevechuls2018'
+            storeFile file('test01.keystore')
+            storePassword 'stevechuls2018'
+        }
+        release {
+            keyAlias 'test01'
+            keyPassword 'stevechuls2018'
+            storeFile file('test01.keystore')
+            storePassword 'stevechuls2018'
+        }
+    }
+
     compileSdkVersion 26
     defaultConfig {
         applicationId "com.ksc.test01"
@@ -11,9 +26,15 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
+        debug {
+            zipAlignEnabled true
+            signingConfig signingConfigs.debug
+        }
+
         release {
+            zipAlignEnabled true
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }
