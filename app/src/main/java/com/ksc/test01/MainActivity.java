@@ -8,6 +8,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import com.android.vending.billing.util.IabException;
+import com.android.vending.billing.util.IabHelper;
+import com.android.vending.billing.util.IabResult;
+import com.android.vending.billing.util.Inventory;
+import com.android.vending.billing.util.Purchase;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -31,6 +36,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private FirebaseAuth mAuth;
 
+    private IabHelper mHelper;
+
+    static final int RC_REQUEST = 10001;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,6 +47,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         findViewById(R.id.sign_in_button).setOnClickListener(this);
         findViewById(R.id.sign_out_button).setOnClickListener(this);
+        findViewById(R.id.buy_inapp).setOnClickListener(this);
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken("35188028322-vjvok5s3t4h11pckge8r8blmrdpgh94j.apps.googleusercontent.com")
@@ -50,7 +60,82 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 //        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
 
+        String base64EncodedPublicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvv+Nnccdl4rNhQmdqzUL+uvsc649gjb7fm6atfAuhkMPsV1ng4tT5F4+AMaml4UpmOn6f4GyDPUGNGjYYYhHeSpLwZYrBz1/RdfMM8ivcY2fD0NFYROIz5xw69lMcFY/g+Ym9Git7KNngowd3WZa79TtvGLudFlQs2eiEKScZD0TdOcT3O2ZvDIvWDMGHMaZiu8twsoFbzQgXmyLvBsMVFZci/KSUG42wQNsywXuaz11FBmkudnvRyNCWrr48p/gTMVtW1tDmLOZqhwAjp3oe5TyzXcBihyf73hyfvFdwvm8jAaSj6kvYv81BIhi+XJJ8DdIxLcII4K3QVfn1IgABQIDAQAB";
 
+        mHelper = new IabHelper(this, base64EncodedPublicKey);
+
+        mHelper.enableDebugLogging(true);
+
+        mHelper.startSetup(new IabHelper.OnIabSetupFinishedListener() {
+            @Override
+            public void onIabSetupFinished(IabResult result) {
+                if(!result.isSuccess())
+                {
+                    Toast.makeText(MainActivity.this, "Error : " + result, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if(mHelper == null)
+                {
+                    return;
+                }
+
+                try
+                {
+                    mHelper.queryInventoryAsync(mGotInventoryListener);
+                }
+                catch(Exception e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    IabHelper.QueryInventoryFinishedListener mGotInventoryListener = new IabHelper.QueryInventoryFinishedListener() {
+        @Override
+        public void onQueryInventoryFinished(IabResult result, Inventory inventory) {
+
+            if(mHelper == null)
+            {
+                return;
+            }
+
+            if(result.isFailure())
+            {
+                return;
+            }
+
+            Purchase vPurchase = inventory.getPurchase("com.stevechuls.item01");
+
+            if(vPurchase != null && verifyDeveloperPayload(vPurchase))
+            {
+
+                mHelper.consumeAsync(inventory.getPurchase("com.stevechuls.item01"), mConsumeFinishedListener);
+            }
+        }
+    };
+
+    IabHelper.OnConsumeFinishedListener mConsumeFinishedListener = new IabHelper.OnConsumeFinishedListener() {
+        @Override
+        public void onConsumeFinished(Purchase purchase, IabResult result) {
+            if(mHelper == null)
+            {
+                return;
+            }
+
+            if(result.isSuccess())
+            {
+                return;
+            }
+        }
+    };
+
+    boolean verifyDeveloperPayload(Purchase p)
+    {
+        String payload = p.getDeveloperPayload();
+
+        return true;
     }
 
     @Override
@@ -91,7 +176,56 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         {
             signOut();
         }
+        else if(i == R.id.buy_inapp)
+        {
+            charge();
+        }
     }
+
+    private void charge()
+    {
+        try
+        {
+            mHelper.launchPurchaseFlow(this, "com.stevechuls.item01", RC_REQUEST, mPurchaseFinishedListener, "");
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    IabHelper.OnIabPurchaseFinishedListener mPurchaseFinishedListener = new IabHelper.OnIabPurchaseFinishedListener() {
+        @Override
+        public void onIabPurchaseFinished(IabResult result, Purchase purchase) {
+            if(mHelper == null)
+            {
+                return;
+            }
+
+            if(result.isFailure())
+            {
+                return;
+            }
+
+            if(!verifyDeveloperPayload(purchase))
+            {
+                return;
+            }
+
+            if(purchase.getSku().equals("com.stevechuls.item01"))
+            {
+                try
+                {
+                    mHelper.consumeAsync(purchase, mConsumeFinishedListener);
+                }
+                catch(Exception e)
+                {
+                    e.printStackTrace();
+                    return;
+                }
+            }
+        }
+    };
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
