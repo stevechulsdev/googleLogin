@@ -48,6 +48,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.sign_in_button).setOnClickListener(this);
         findViewById(R.id.sign_out_button).setOnClickListener(this);
         findViewById(R.id.buy_inapp).setOnClickListener(this);
+        findViewById(R.id.navi_btn).setOnClickListener(this);
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken("35188028322-vjvok5s3t4h11pckge8r8blmrdpgh94j.apps.googleusercontent.com")
@@ -179,6 +180,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else if(i == R.id.buy_inapp)
         {
             charge();
+        }
+        else if(i == R.id.navi_btn)
+        {
+            Intent intent = new Intent(this, NavigationActivity.class);
+            this.startActivity(intent);
         }
     }
 
